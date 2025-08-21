@@ -3,6 +3,7 @@ import os
 from datetime import datetime, date as dt_date, time as dt_time, timezone
 from thunderstore_api import get_package_metrics
 from database import DatabaseManager
+from metrics import ModMetrics
 
 def main():
     try:
@@ -35,6 +36,15 @@ def main():
                 print(f"  Added download entry: {downloads:,} downloads")
             except Exception as e:
                 print(f"  Error adding download entry: {e}")
+
+        # Send daily metrics to Discord
+        print(f"\n--- Sending daily metrics to Discord ---")
+        try:
+            metrics = ModMetrics()
+            metrics_data = metrics.BuildDailyMetrics()
+            print(f"  Sent metrics for {len(metrics_data)} mods to Discord")
+        except Exception as e:
+            print(f"  Error sending metrics to Discord: {e}")
 
         print(f"[done] {datetime.now(timezone.utc).isoformat()} — success")
     except Exception as e:
