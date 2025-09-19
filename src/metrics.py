@@ -1,6 +1,6 @@
 
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from database import DatabaseManager
 from discord_client import DiscordClient
 
@@ -11,8 +11,8 @@ class ModMetrics:
 
     def BuildDailyMetrics(self):
         """Build daily metrics for mod downloads and send to Discord"""
-        # Get current date and previous day
-        today = datetime.now().date()
+        # Get current date and previous day (use UTC to match main.py)
+        today = datetime.now(timezone.utc).date()
         yesterday = today - timedelta(days=1)
         
         # Get all mods from database
