@@ -1,17 +1,8 @@
 import { getAllMods, getDownloadsForDate } from "@/db";
-import { sendWebhookMessage } from "./discord";
+import { sendEmbed } from "./discord";
 
 function toDateString(date: Date): string {
   return date.toISOString().slice(0, 10);
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
 }
 
 interface ModMetric {
@@ -43,19 +34,32 @@ export async function buildDailyMetrics(): Promise<ModMetric[]> {
     }
   }
 
-  const formattedDate = formatDate(
-    new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  );
-  let message = `Summary of mod downloads for ${formattedDate}\n`;
+  const fields =
+    metricsData.length > 0
+      ? metricsData
+          .sort((a, b) => b.change - a.change)
+          .map((mod) => ({
+            name: mod.name,
+            value: `**+${mod.change.toLocaleString()}** downloads`,
+            inline: true,
+          }))
+      : [
+          {
+            name: "No data",
+            value: "No download data available for comparison.",
+            inline: false,
+          },
+        ];
 
-  if (metricsData.length === 0) {
-    message += "No download data available for comparison.";
-  } else {
-    for (const mod of metricsData) {
-      message += `${mod.name}: ${mod.change}\n`;
-    }
-  }
+  const totalChange = metricsData.reduce((sum, m) => sum + m.change, 0);
 
-  await sendWebhookMessage(message);
+  await sendEmbed({
+    title: `Daily Download Report - ${yesterday}`,
+    color: 0x5865f2,
+    fields,
+    footer: { text: `Total new downloads: +${totalChange.toLocaleString()}` },
+    timestamp: new Date().toISOString(),
+  });
+
   return metricsData;
 }
