@@ -40,7 +40,7 @@ export async function buildDailyMetrics(): Promise<ModMetric[]> {
           .sort((a, b) => b.change - a.change)
           .map((mod) => ({
             name: mod.name,
-            value: `**+${mod.change.toLocaleString()}** downloads`,
+            value: `+${mod.change.toLocaleString()} downloads`,
             inline: true,
           }))
       : [
