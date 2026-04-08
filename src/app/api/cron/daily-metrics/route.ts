@@ -7,6 +7,11 @@ import { sendEmbed, type DiscordEmbed, type EmbedField } from "@/lib/discord";
 
 export const maxDuration = 60;
 
+// Maps Thunderstore "{author}.{name}" to BepInEx modId when they differ
+const THUNDERSTORE_TO_MODID: Record<string, string> = {
+  "warpalicious.Procedural_Roads": "warpalicious.ProceduralRoads",
+};
+
 function buildCombinedEmbed(
   date: string,
   downloads: ModMetric[],
@@ -25,7 +30,8 @@ function buildCombinedEmbed(
 
   for (const mod of downloads) {
     totalDownloads += mod.change;
-    const modId = `${mod.author}.${mod.name}`;
+    const thunderstoreId = `${mod.author}.${mod.name}`;
+    const modId = THUNDERSTORE_TO_MODID[thunderstoreId] ?? thunderstoreId;
     const usageMod = usageById.get(modId);
     const displayName = usageMod?.displayName ?? mod.name;
 
