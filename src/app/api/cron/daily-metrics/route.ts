@@ -1,86 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAllMods, downloadEntryExists, addDownloadEntry } from "@/db";
 import { getPackageMetrics } from "@/lib/thunderstore";
-import { getDownloadMetrics, type ModMetric } from "@/lib/metrics";
-import { fetchUsageSummary, type UsageSummary } from "@/lib/analytics";
-import { sendEmbed, type DiscordEmbed, type EmbedField } from "@/lib/discord";
+import { getDownloadMetrics } from "@/lib/metrics";
+import { fetchUsageSummary } from "@/lib/analytics";
+import { sendEmbed } from "@/lib/discord";
+import { buildCombinedEmbed } from "@/lib/dailyMetricsEmbed";
 
 export const maxDuration = 60;
-
-// Maps Thunderstore "{author}.{name}" to BepInEx modId when they differ
-const THUNDERSTORE_TO_MODID: Record<string, string> = {
-  "warpalicious.Procedural_Roads": "warpalicious.ProceduralRoads",
-};
-
-function buildCombinedEmbed(
-  date: string,
-  downloads: ModMetric[],
-  usage: UsageSummary | null
-): DiscordEmbed {
-  // Key by modId (e.g. "warpalicious.More_World_Locations_AIO") to match across datasets
-  const usageById = new Map<string, UsageSummary["mods"][number]>();
-  if (usage) {
-    for (const mod of usage.mods) {
-      usageById.set(mod.modId, mod);
-    }
-  }
-
-  const fields: EmbedField[] = [];
-  let totalDownloads = 0;
-
-  for (const mod of downloads) {
-    totalDownloads += mod.change;
-    const thunderstoreId = `${mod.author}.${mod.name}`;
-    const modId = THUNDERSTORE_TO_MODID[thunderstoreId] ?? thunderstoreId;
-    const usageMod = usageById.get(modId);
-    const displayName = usageMod?.displayName ?? mod.name;
-
-    let value = `+${mod.change.toLocaleString()} downloads`;
-    if (usageMod) {
-      const versionLines = usageMod.versions
-        .map((v) => `v${v.version}: ${v.users}`)
-        .join(" · ");
-      value += ` · ${usageMod.dau} unique users\n${versionLines}`;
-      usageById.delete(modId);
-    }
-
-    fields.push({ name: displayName, value, inline: true });
-  }
-
-  // Add any usage-only mods not matched by downloads
-  for (const [, mod] of usageById) {
-    const versionLines = mod.versions
-      .map((v) => `v${v.version}: ${v.users}`)
-      .join(" · ");
-    fields.push({
-      name: mod.displayName,
-      value: `${mod.dau} unique users\n${versionLines}`,
-      inline: true,
-    });
-  }
-
-  if (fields.length === 0) {
-    fields.push({
-      name: "No data",
-      value: "No analytics data available.",
-      inline: false,
-    });
-  }
-
-  const footerParts: string[] = [];
-  footerParts.push(`+${totalDownloads.toLocaleString()} downloads`);
-  if (usage) {
-    footerParts.push(`${usage.totalUniqueUsers} unique users`);
-  }
-
-  return {
-    title: `Daily Analytics Report — ${date}`,
-    color: 0x5865f2,
-    fields,
-    footer: { text: footerParts.join(" · ") },
-    timestamp: new Date().toISOString(),
-  };
-}
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
