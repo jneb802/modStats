@@ -3,6 +3,11 @@ export interface UsageVersion {
   users: number;
 }
 
+export interface BepInExVersion {
+  version: string;
+  users: number;
+}
+
 export interface UsageMod {
   modId: string;
   displayName: string;
@@ -13,6 +18,7 @@ export interface UsageMod {
 export interface UsageSummary {
   date: string;
   totalUniqueUsers: number;
+  bepInExVersions?: BepInExVersion[];
   mods: UsageMod[];
 }
 
